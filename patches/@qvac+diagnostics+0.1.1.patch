@@ -1,0 +1,37 @@
+diff --git a/node_modules/@qvac/diagnostics/index.js b/node_modules/@qvac/diagnostics/index.js
+index bb5817d..a4f0086 100644
+--- a/node_modules/@qvac/diagnostics/index.js
++++ b/node_modules/@qvac/diagnostics/index.js
+@@ -1,29 +1,12 @@
+ 'use strict'
+ 
+-let _os
+-try {
+-  _os = require('bare-os')
+-} catch (e) {
+-  try {
+-    _os = require('os')
+-  } catch (e2) {
+-    _os = null
+-  }
+-}
++const _os = require('bare-os')
+ 
+-let _process
++let _process = require('bare-process')
+ if (typeof global !== 'undefined' && global.process) {
+   _process = global.process
+ } else {
+-  try {
+-    _process = require('process')
+-  } catch (e) {
+-    try {
+-      _process = require('bare-process')
+-    } catch (e2) {
+-      _process = null
+-    }
+-  }
++  _process = require('bare-process')
+ }
+ 
+ /**

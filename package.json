@@ -1,0 +1,35 @@
+{
+  "name": "keet-translations",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "bundle": "npx keet-package bundle --in node_modules/@holepunchto/bare-translations/worker/index.js  --out translations/translations.bundle.js --host ios-arm64 --host ios-arm64-simulator --host ios-x64-simulator --host android-arm64 --linked",
+    "postinstall": "patch-package && npm run bundle"
+  },
+  "dependencies": {
+    "@holepunchto/bare-translations": "^1.0.0",
+    "cross-worker-bare-kit": "^2.0.1",
+    "expo": "~55.0.26",
+    "expo-device": "^8.0.10",
+    "expo-file-system": "^55.0.22",
+    "expo-status-bar": "~55.0.6",
+    "react": "19.2.0",
+    "react-native": "0.83.6",
+    "react-native-bare-kit": "^0.14.0"
+  },
+  "devDependencies": {
+    "@holepunchto/keet-package": "^3.0.0",
+    "@types/react": "~19.2.2",
+    "patch-package": "^8.0.1",
+    "postinstall-postinstall": "^2.1.0",
+    "typescript": "~5.9.2"
+  },
+  "overrides": {
+    "@qvac/sdk": "0.11.0"
+  },
+  "private": true
+}
