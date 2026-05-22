@@ -90,7 +90,7 @@ RAG is JS-only bloat in this workflow: HyperDB transitively requires `rocksdb-na
 
 ### Why we dropped the rest of the SDK patch
 
-The original SDK patch from Aaron's repro had two extra hunks we initially assumed were necessary:
+The original SDK patch had two extra hunks we initially assumed were necessary:
 
 1. `bare-client.js` — rewriting the default-worker fallback path to use `import.meta.asset()`.
 2. `worker.js` — narrowing the SDK's default plugin-registration block to just `nmtPlugin`.
@@ -100,7 +100,7 @@ Both were redundant once we proved the runtime flow:
 - The defensive `hasPlugin(nmtPlugin.modelType)` check in our worker registers `nmtPlugin` *before* the SDK's `loadWorkerEntry()` ever fires, so the default-worker fallback is never reached at runtime. (1) was protecting a dead branch.
 - The SDK's default `worker.js` is loaded via a string-concatenated dynamic `import()` (`"../../server/" + "worker.js"`), which `bare-pack`'s static analyser does **not** trace. So the 8 plugin imports inside it never end up in the bundle. (2) was stripping imports that were already invisible to the bundler.
 
-Trimming the patch shrank the JS bundle from 8.7 MB → 7.9 MB and reduced the SDK patch from 99 → 64 lines. The remaining hunks (RAG) are the only SDK-side changes Aaron's app legitimately needs.
+Trimming the patch shrank the JS bundle from 8.7 MB → 7.9 MB and reduced the SDK patch from 99 → 64 lines.
 
 ## What would simplify this
 
@@ -110,7 +110,7 @@ In rough order of impact:
 - **`keet-package` (or `bare-pack`) hoists, or emits a `name@version` manifest.** If the bundler resolved every `addon: true` reference to a single version, or wrote out the exact `(name, version)` pairs it traced, we could go back to a precise include-list and skip the link-then-delete dance.
 - **`bare-link` accepts versioned dependency entries.** `dependencies: { "bare-tls": "3.1.5" }` resolving against nested copies would let the SDK's existing include-list pattern work for keet-package bundles without any extra patching.
 - **The `--node-modules-addons` story stabilises.** If `keet-mobile` (or any app shell) propagated the sidecar `node_modules` to the worklet's asset resolver, `--node-modules-addons` would let the bundle declare exactly what it needs and the link-side patch becomes unnecessary.
-- **RAG becomes a real plugin.** Once RAG is a `registerPlugin`-style module instead of a hardcoded handler, the SDK patch (`@holepunchto+bare-translations++@qvac+sdk+0.11.0.patch`) goes away entirely — consumers add it (or omit it) via `qvac.config.json` like any other plugin, and Aaron's app needs zero SDK-side modifications.
+- **RAG becomes a real plugin.** Once RAG is a `registerPlugin`-style module instead of a hardcoded handler, the SDK patch (`@holepunchto+bare-translations++@qvac+sdk+0.11.0.patch`) goes away entirely — consumers add it (or omit it) via `qvac.config.json` like any other plugin, and app needs zero SDK-side modifications.
 
 ## File map
 
