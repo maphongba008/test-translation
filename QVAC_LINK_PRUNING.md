@@ -110,7 +110,7 @@ In rough order of impact:
 - **`keet-package` (or `bare-pack`) hoists, or emits a `name@version` manifest.** If the bundler resolved every `addon: true` reference to a single version, or wrote out the exact `(name, version)` pairs it traced, we could go back to a precise include-list and skip the link-then-delete dance.
 - **`bare-link` accepts versioned dependency entries.** `dependencies: { "bare-tls": "3.1.5" }` resolving against nested copies would let the SDK's existing include-list pattern work for keet-package bundles without any extra patching.
 - **The `--node-modules-addons` story stabilises.** If `keet-mobile` (or any app shell) propagated the sidecar `node_modules` to the worklet's asset resolver, `--node-modules-addons` would let the bundle declare exactly what it needs and the link-side patch becomes unnecessary.
-- **RAG becomes a real plugin.** Once RAG is a `registerPlugin`-style module instead of a hardcoded handler, the SDK patch (`@holepunchto+bare-translations++@qvac+sdk+0.11.0.patch`) goes away entirely — consumers add it (or omit it) via `qvac.config.json` like any other plugin, and app needs zero SDK-side modifications.
+- RAG becomes a real plugin
 
 ## File map
 
