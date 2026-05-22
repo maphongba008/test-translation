@@ -1,8 +1,8 @@
 diff --git a/node_modules/react-native-bare-kit/android/link.mjs b/node_modules/react-native-bare-kit/android/link.mjs
-index 0d603ca..2962e8c 100644
+index 0d603ca..b1f38e9 100644
 --- a/node_modules/react-native-bare-kit/android/link.mjs
 +++ b/node_modules/react-native-bare-kit/android/link.mjs
-@@ -1,12 +1,66 @@
+@@ -1,12 +1,82 @@
 +/**
 + * Manifest-aware android/link.mjs.
 + *
@@ -10,7 +10,7 @@ index 0d603ca..2962e8c 100644
 + * installed version (matches the original react-native-bare-kit behaviour
 + * and works correctly even when a bundler like keet-package leaves multiple
 + * nested versions of the same addon side by side). After linking, deletes
-+ * any framework directory whose package name appears in
++ * any per-ABI shared library whose package name appears in
 + * qvac/addons.manifest.json#excludePackages.
 + *
 + * For background see QVAC_LINK_PRUNING.md at the repo root.
@@ -58,18 +58,34 @@ index 0d603ca..2962e8c 100644
 +  console.log(
 +    `[QVAC] Pruning ${excludePackages.length} excluded package(s): ${excludePackages.join(', ')}`
 +  )
-+  const entries = fs.existsSync(addonsDir) ? fs.readdirSync(addonsDir) : []
++  const packagePrefixes = excludePackages.map((pkg) => pkg.replace(/^@/, '').replace('/', '__'))
++  const removeDiffusionSidecars = excludePackages.includes('@qvac/diffusion-cpp')
 +  let removed = 0
-+  for (const pkg of excludePackages) {
-+    const fwPrefix = pkg.replace(/^@/, '').replace('/', '__') + '.'
-+    for (const entry of entries) {
-+      if (!entry.startsWith(fwPrefix)) continue
-+      const target = path.join(addonsDir, entry)
-+      console.log('[QVAC] Removing', entry)
-+      fs.rmSync(target, { recursive: true, force: true })
++
++  function shouldRemoveAddon(filename) {
++    if (!filename.endsWith('.so')) return false
++    for (const prefix of packagePrefixes) {
++      if (filename.startsWith(`lib${prefix}.`)) return true
++    }
++    return removeDiffusionSidecars && filename.startsWith('libqvac-diffusion-ggml-')
++  }
++
++  function prune(dir) {
++    if (!fs.existsSync(dir)) return
++    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
++      const target = path.join(dir, entry.name)
++      if (entry.isDirectory()) {
++        prune(target)
++        continue
++      }
++      if (!shouldRemoveAddon(entry.name)) continue
++      console.log('[QVAC] Removing', path.relative(addonsDir, target))
++      fs.rmSync(target, { force: true })
 +      removed++
 +    }
 +  }
++
++  prune(addonsDir)
 +  console.log(`[QVAC] Removed ${removed} entries`)
 +}
 diff --git a/node_modules/react-native-bare-kit/ios/link.mjs b/node_modules/react-native-bare-kit/ios/link.mjs
