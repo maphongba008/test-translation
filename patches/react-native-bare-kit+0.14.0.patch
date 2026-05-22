@@ -1,0 +1,148 @@
+diff --git a/node_modules/react-native-bare-kit/android/link.mjs b/node_modules/react-native-bare-kit/android/link.mjs
+index 0d603ca..2962e8c 100644
+--- a/node_modules/react-native-bare-kit/android/link.mjs
++++ b/node_modules/react-native-bare-kit/android/link.mjs
+@@ -1,12 +1,66 @@
++/**
++ * Manifest-aware android/link.mjs.
++ *
++ * Links every `addon: true` package found in node_modules at its actual
++ * installed version (matches the original react-native-bare-kit behaviour
++ * and works correctly even when a bundler like keet-package leaves multiple
++ * nested versions of the same addon side by side). After linking, deletes
++ * any framework directory whose package name appears in
++ * qvac/addons.manifest.json#excludePackages.
++ *
++ * For background see QVAC_LINK_PRUNING.md at the repo root.
++ */
++import fs from 'fs'
+ import path from 'path'
+ import { fileURLToPath } from 'url'
+ import link from 'bare-link'
+ 
+-const __filename = fileURLToPath(import.meta.url)
++const __dirname = path.dirname(fileURLToPath(import.meta.url))
++const projectRoot = path.join(__dirname, '..', '..', '..')
++const addonsDir = path.join(__dirname, 'src', 'main', 'addons')
+ 
+-for await (const resource of link(path.join(__filename, '..', '..', '..', '..'), {
++if (fs.existsSync(addonsDir)) {
++  console.log('[QVAC] Cleaning existing android addons directory...')
++  fs.rmSync(addonsDir, { recursive: true, force: true })
++}
++
++for await (const resource of link(projectRoot, {
+   hosts: ['android-arm64', 'android-arm', 'android-ia32', 'android-x64'],
+-  out: path.join(__filename, '..', 'src', 'main', 'addons')
++  out: addonsDir
+ })) {
+   console.log('Wrote', resource)
+ }
++
++const manifestPath = path.join(projectRoot, 'qvac', 'addons.manifest.json')
++let excludePackages = []
++if (fs.existsSync(manifestPath)) {
++  try {
++    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
++    if (Array.isArray(manifest.excludePackages)) {
++      excludePackages = manifest.excludePackages
++    }
++  } catch (err) {
++    console.warn('[QVAC] Failed to parse addons manifest:', err.message)
++  }
++}
++
++if (excludePackages.length === 0) {
++  console.log('[QVAC] No exclude list; keeping all linked addons')
++} else {
++  console.log(
++    `[QVAC] Pruning ${excludePackages.length} excluded package(s): ${excludePackages.join(', ')}`
++  )
++  const entries = fs.existsSync(addonsDir) ? fs.readdirSync(addonsDir) : []
++  let removed = 0
++  for (const pkg of excludePackages) {
++    const fwPrefix = pkg.replace(/^@/, '').replace('/', '__') + '.'
++    for (const entry of entries) {
++      if (!entry.startsWith(fwPrefix)) continue
++      const target = path.join(addonsDir, entry)
++      console.log('[QVAC] Removing', entry)
++      fs.rmSync(target, { recursive: true, force: true })
++      removed++
++    }
++  }
++  console.log(`[QVAC] Removed ${removed} entries`)
++}
+diff --git a/node_modules/react-native-bare-kit/ios/link.mjs b/node_modules/react-native-bare-kit/ios/link.mjs
+index 44124a2..1eb4b0f 100644
+--- a/node_modules/react-native-bare-kit/ios/link.mjs
++++ b/node_modules/react-native-bare-kit/ios/link.mjs
+@@ -1,12 +1,66 @@
++/**
++ * Manifest-aware ios/link.mjs.
++ *
++ * Links every `addon: true` package found in node_modules at its actual
++ * installed version (matches the original react-native-bare-kit behaviour
++ * and works correctly even when a bundler like keet-package leaves multiple
++ * nested versions of the same addon side by side). After linking, deletes
++ * any xcframework whose package name appears in
++ * qvac/addons.manifest.json#excludePackages.
++ *
++ * For background see QVAC_LINK_PRUNING.md at the repo root.
++ */
++import fs from 'fs'
+ import path from 'path'
+ import { fileURLToPath } from 'url'
+ import link from 'bare-link'
+ 
+-const __filename = fileURLToPath(import.meta.url)
++const __dirname = path.dirname(fileURLToPath(import.meta.url))
++const projectRoot = path.join(__dirname, '..', '..', '..')
++const addonsDir = path.join(__dirname, 'addons')
+ 
+-for await (const resource of link(path.join(__filename, '..', '..', '..', '..'), {
++if (fs.existsSync(addonsDir)) {
++  console.log('[QVAC] Cleaning existing ios addons directory...')
++  fs.rmSync(addonsDir, { recursive: true, force: true })
++}
++
++for await (const resource of link(projectRoot, {
+   hosts: ['ios-arm64', 'ios-arm64-simulator', 'ios-x64-simulator'],
+-  out: path.join(__filename, '..', 'addons')
++  out: addonsDir
+ })) {
+   console.log('Wrote', resource)
+ }
++
++const manifestPath = path.join(projectRoot, 'qvac', 'addons.manifest.json')
++let excludePackages = []
++if (fs.existsSync(manifestPath)) {
++  try {
++    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
++    if (Array.isArray(manifest.excludePackages)) {
++      excludePackages = manifest.excludePackages
++    }
++  } catch (err) {
++    console.warn('[QVAC] Failed to parse addons manifest:', err.message)
++  }
++}
++
++if (excludePackages.length === 0) {
++  console.log('[QVAC] No exclude list; keeping all linked addons')
++} else {
++  console.log(
++    `[QVAC] Pruning ${excludePackages.length} excluded package(s): ${excludePackages.join(', ')}`
++  )
++  const entries = fs.readdirSync(addonsDir)
++  let removed = 0
++  for (const pkg of excludePackages) {
++    const fwPrefix = pkg.replace(/^@/, '').replace('/', '__') + '.'
++    for (const entry of entries) {
++      if (!entry.startsWith(fwPrefix) || !entry.endsWith('.xcframework')) continue
++      const target = path.join(addonsDir, entry)
++      console.log('[QVAC] Removing', entry)
++      fs.rmSync(target, { recursive: true, force: true })
++      removed++
++    }
++  }
++  console.log(`[QVAC] Removed ${removed} xcframework(s)`)
++}

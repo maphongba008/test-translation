@@ -1,0 +1,5 @@
+{
+  "plugins": [
+    "@qvac/sdk/nmtcpp-translation/plugin"
+  ]
+}
