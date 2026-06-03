@@ -11,7 +11,7 @@
     "postinstall": "patch-package && npm run bundle"
   },
   "dependencies": {
-    "@holepunchto/bare-translations": "^1.0.0",
+    "@holepunchto/bare-translations": "github:holepunchto/bare-translations#test-bare-sdk",
     "cross-worker-bare-kit": "^2.0.1",
     "expo": "~55.0.26",
     "expo-device": "^8.0.10",
