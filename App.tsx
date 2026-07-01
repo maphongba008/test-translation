@@ -1,8 +1,11 @@
 /** biome-ignore-all lint/suspicious/noAsyncPromiseExecutor: needed */
 import { useState } from 'react';
-import { StatusBar } from 'expo-status-bar';
 import { Text, TouchableOpacity, View } from 'react-native';
+
+import { reloadAppAsync } from 'expo'
+import { StatusBar } from 'expo-status-bar';
 import { Paths } from 'expo-file-system'
+
 import { initTranslationsWorklet, translationsWorker } from './translations';
 
 const path = `${Paths.document.uri}backend`.replace('file://', '')
@@ -62,7 +65,10 @@ export default function App() {
       <Text>{`${text} -> ${translatedText}`} </Text>
       <StatusBar style="auto" />
       <TouchableOpacity style={{ backgroundColor: 'green', padding: 20, marginTop: 20, }} onPress={start}>
-        <Text style={{ color: 'white' }}>Start</Text>
+        <Text style={{ color: 'white' }}>Translate</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={{ backgroundColor: 'red', padding: 20, marginTop: 20, }} onPress={() => reloadAppAsync()}>
+        <Text style={{ color: 'white' }}>Soft Reload</Text>
       </TouchableOpacity>
     </View>
   );
