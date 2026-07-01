@@ -1,59 +1,70 @@
 /** biome-ignore-all lint/suspicious/noAsyncPromiseExecutor: needed */
 import { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import {Paths} from 'expo-file-system'
+import { Text, TouchableOpacity, View } from 'react-native';
+import { Paths } from 'expo-file-system'
 import { initTranslationsWorklet, translationsWorker } from './translations';
 
 const path = `${Paths.document.uri}backend`.replace('file://', '')
-const from = 'it'
 const to = 'en'
 const text = 'oggi è una bella giornata'
 
 export default function App() {
   const [progress, setProgress] = useState(0)
-  const [modelId, setModelId] = useState('')
+  const [model, setModel] = useState()
   const [translatedText, setTranslatedText] = useState('')
+  const [from, setFrom] = useState('')
+
   const start = async () => {
+    console.log('start init')
     await initTranslationsWorklet(path)
-    const { code } = await translationsWorker.detectLanguage({ text: 'Ciao' })
-    console.log('detected', code)
-  
-    const modelId = await new Promise(async (resolve) => {
-      const stream = await translationsWorker.loadModel({ from, to })
+    console.log('done init')
+
+    const { code } = await translationsWorker.detectLanguage({ text })
+    console.log('language detected', code)
+    setFrom(code)
+
+    const model = await new Promise(async (resolve) => {
+      console.log('start load model')
+      const stream = await translationsWorker.loadModel({ from: code, to })
       stream.on('data', (p) => {
-        console.log(p)
+        console.log('load model progress', p)
         setProgress(p.progress.percentage)
         if (p.ready) {
-          setModelId(p.modelId)
-          resolve(p.modelId)
+          console.log('model loaded', p)
+          setModel(p)
+          resolve(p)
         }
       })
     })
-    const translateResult = await translationsWorker.translate({modelId, modelType: 'nmt', from, to, text })
+
+    const translateResult = await translationsWorker.translate({
+      modelId: model.modelId,
+      modelType: model.modelType,
+      from,
+      to,
+      text
+    })
     console.log('translated', translateResult)
     setTranslatedText(translateResult.result)
-    
+
   }
   return (
-    <View style={styles.container}>
+    <View style={{
+      flex: 1,
+      backgroundColor: '#fff',
+      paddingVertical: 100,
+      paddingHorizontal: 20,
+    }}>
       <Text>Progress: {progress}</Text>
-      <Text>ModelId: {modelId}</Text>
-      <Text>{`Translated en -> it`} </Text>
+      <Text>ModelId: {model?.modelId}</Text>
+      <Text>{`Translated ${from} -> ${to}`} </Text>
       <Text>{`${text} -> ${translatedText}`} </Text>
       <StatusBar style="auto" />
-      <TouchableOpacity style={{backgroundColor: 'green', padding: 20, marginTop: 20,}} onPress={start}>
-        <Text style={{color: 'white'}}>Start</Text>
+      <TouchableOpacity style={{ backgroundColor: 'green', padding: 20, marginTop: 20, }} onPress={start}>
+        <Text style={{ color: 'white' }}>Start</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    paddingVertical: 100,
-    paddingHorizontal: 20,
-  },
-});
